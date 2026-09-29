@@ -16,34 +16,44 @@ class VideosListScreen extends StatefulWidget {
 
 class _VideosListScreenState extends State<VideosListScreen> {
 
-  ValueNotifier<bool> _isSearchClicked = ValueNotifier(false);
-  TextEditingController _searchController = TextEditingController();
+  final ValueNotifier<bool> _isSearchClicked = ValueNotifier(false);
+  final TextEditingController _searchController = TextEditingController();
 
   late AppCubit _cubit;
+
+  @override
+  void dispose() {
+    // TODO: implement dispose
+    _isSearchClicked.dispose();
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final size = MediaQuery.of(context).size;
     final textTheme = Theme.of(context).textTheme;
-    return SafeArea(
-      child: BlocProvider(
-        create: (context) => AppCubit(AppRepository()),
-        child: BlocBuilder<AppCubit, AppStates>(
-          builder: (context, state) {
-            _cubit = context.read<AppCubit>();
-            return ValueListenableBuilder(
-              valueListenable: _isSearchClicked,
-              builder: (context, isSearchClicked, child) {
-                return Scaffold(
+    return BlocProvider(
+      create: (context) => AppCubit(AppRepository())..getVideos(),
+      child: BlocBuilder<AppCubit, AppStates>(
+        builder: (context, state) {
+          _cubit = context.read<AppCubit>();
+          return ValueListenableBuilder(
+            valueListenable: _isSearchClicked,
+            builder: (context, isSearchClicked, child) {
+              return SafeArea(
+                child: Scaffold(
                   appBar: AppBar(
                     backgroundColor: Colors.lightBlue,
-                    title: Text('WatchIt', style: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),),
+                    title: Text('WatchIt'),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.only(
                           bottomLeft: Radius.circular(20),
                           bottomRight: Radius.circular(20)
                       )
                     ),
+                    titleTextStyle: textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                    titleSpacing: 10,
                     actions: [
                       isSearchClicked ? Focus(
                         onFocusChange: (isFocus) {
@@ -53,7 +63,7 @@ class _VideosListScreenState extends State<VideosListScreen> {
                           }
                         },
                         child: SizedBox(
-                          width: size.width * 3 / 4,
+                          width: size.width * 5 / 7,
                           child: Padding(
                             padding: const EdgeInsets.all(8.0),
                             child: TextField(
@@ -64,6 +74,17 @@ class _VideosListScreenState extends State<VideosListScreen> {
                                 hintText: 'Search...',
                                 hintStyle: const TextStyle(color: Colors.black45),
                                 prefixIcon: const Icon(Icons.search, color: Colors.black45),
+                                suffixIcon: IconButton(
+                                  onPressed: () {
+                                    if(_searchController.text.isEmpty){
+                                      _isSearchClicked.value = false;
+                                    } else {
+                                      _searchController.text = '';
+                                      _cubit.getVideos();
+                                    }
+                                  },
+                                  icon: Icon(Icons.cancel_outlined,),
+                                ),
                                 filled: true,
                                 fillColor: Colors.white70,
                                 contentPadding: EdgeInsets.zero,
@@ -72,6 +93,7 @@ class _VideosListScreenState extends State<VideosListScreen> {
                                   borderSide: BorderSide.none,
                                 ),
                               ),
+                              onChanged: (query) => (query.isEmpty) ? _cubit.getVideos() : null,
                               onSubmitted: (query) => _cubit.getSearchedVideos(query),
                             ),
                           ),
@@ -83,14 +105,18 @@ class _VideosListScreenState extends State<VideosListScreen> {
                     ],
                   ),
                   body: ListView.builder(
-                    itemBuilder: (context, index) => VideoCard(video: _cubit.videos[index]),
+                    itemBuilder: (context, index) => VideoCard(
+                      key: ValueKey(_cubit.videos[index].id),
+                      video: _cubit.videos[index],
+                    ),
                     itemCount: _cubit.videos.length,
+                    // shrinkWrap: true,
                   ),
-                );
-              }
-            );
-          }
-        ),
+                ),
+              );
+            }
+          );
+        }
       ),
     );
   }

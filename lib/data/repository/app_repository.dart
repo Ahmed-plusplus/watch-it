@@ -31,6 +31,6 @@ class AppRepository {
   ];
 
   List<VideoModel> getVideosByQuery(String query){
-    return _videos.where((video) => video.title.contains(query)).toList();
+    return _videos.where((video) => video.title.contains(query.trim())).toList();
   }
 }
